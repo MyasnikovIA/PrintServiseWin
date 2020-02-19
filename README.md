@@ -21,7 +21,6 @@ BarsPyService.exe - сервис для печати
 **Сборка сервиса:**
 <pre>
 cd host
-pyinstaller --onefile --windowed --icon=app.ico app.py BarsPyService.py
 pyinstaller --onefile --icon="app.ico" --hidden-import win32timezone BarsPyService.py
 </pre> 
 
