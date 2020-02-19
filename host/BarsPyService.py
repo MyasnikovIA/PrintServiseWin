@@ -50,8 +50,13 @@ def requestFun():
         printer_name = requestMessage.get("PrinterName")
     if "Print" in requestMessage:
         try:
-            res = print_image(requestMessage.get("Print"), printer_name, widthPage, heightPage)
-            return json.dumps(res), 200
+            if printer_name == "":
+               printer_name = win32print.GetDefaultPrinter()
+               requestMessage = print_image(requestMessage.get("Print"), printer_name, widthPage, heightPage)
+               return json.dumps(requestMessage), 200
+            else:
+               requestMessage["Error"] = "Printer not select"
+            return json.dumps(requestMessage), 200
         except:
             requestMessage["Error"] = "%s" % sys.exc_info()[0]
             return json.dumps(requestMessage), 200

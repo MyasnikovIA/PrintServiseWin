@@ -44,12 +44,6 @@ def print_image(StrPrintHtml="", printer_name="",widthPage=300,heightPage=100):
     :return:
     """
     requestMessage = {}
-    if printer_name == "":
-        try:
-            printer_name = win32print.GetDefaultPrinter()
-        except:
-            requestMessage["Error"] = "Error:No select printer"
-            return requestMessage
     try:
         filename = tempfile.mktemp(".png")
         htmlStr = """<!DOCTYPE html><html><head><meta charset="utf-8"><title>Печать</title></head><body>%s</body></html>""" % StrPrintHtml
@@ -57,7 +51,7 @@ def print_image(StrPrintHtml="", printer_name="",widthPage=300,heightPage=100):
         imgkit.from_string(htmlStr, filename, options=options)
         img = Image.open(filename, 'r')
     except OSError as e:
-        requestMessage["Error"] = "Error:create temp file %s %s" % (filename,  str(e))
+        requestMessage["Error"] = "create temp file %s %s" % (filename,  str(e))
         return requestMessage
     hdc = win32ui.CreateDC()
     hdc.CreatePrinterDC(printer_name)
