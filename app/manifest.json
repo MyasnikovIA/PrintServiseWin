@@ -1,0 +1,25 @@
+{
+  "name": "BarsPy Plagin",
+  "version": "1.1",
+  "manifest_version": 2,
+  "description": "Плагин вывода на печать из JavaScript.",
+  "icons": {
+    "128": "icon-128.png"
+  },
+  "permissions": [
+    "nativeMessaging"
+  ],
+  "background": {
+    "scripts": ["js/background.js"]
+  },
+  "web_accessible_resources": [
+    "js/adapter.js"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [ "js/content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}
