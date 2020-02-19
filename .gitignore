@@ -1,1 +1,4 @@
 /.idea
+/host/build
+/host/__pycache__
+/host/BarsPyService.spec
