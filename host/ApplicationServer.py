@@ -102,16 +102,3 @@ def print_image(StrPrintHtml="", printer_name="",widthPage=300,heightPage=100):
     hdc.DeleteDC()
     return requestMessage
 
-
-if __name__ == '__main__':
-    filenameHtml = tempfile.mktemp(".html")
-    filenameImg = tempfile.mktemp(".png")
-    print(filenameHtml)
-    htmlStr = """<!DOCTYPE html><html><head><meta charset="utf-8"><title>Печать</title></head><body>%s</body></html>""" % "gdfgdfgdgdgdfg"
-    with open("demofile2.txt", "a") as f:
-        f.write(htmlStr)
-    imgkit.from_file(filenameHtml, filenameImg)
-    os.remove(filenameHtml)
-
-
-

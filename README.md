@@ -84,3 +84,11 @@ BarsPySend({"GetPrinterList":1},function(dat){console.log(dat);}) // получ�
 BarsPySend({"Print":"< h1>Привет Мир-HelloWorld</h1>","widthPage":300,"heightPage":100,"PrinterName":"Microsoft XPS Document Writer"},function(dat){console.log(dat);})
 BarsPySend({"Print":"< h1>Привет Мир-HelloWorld</h1>"}) // отправека на печать без получения ответа
 </pre>
+
+**Для сблрки необходимо использовать сторонние пакеты:**
+<pre>
+pip install Flask
+pip install Flask-cors
+pip install imgkit
+pip install pyinstaller
+</pre> 
