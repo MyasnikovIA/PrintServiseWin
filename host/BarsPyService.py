@@ -20,6 +20,7 @@ import imgkit
 from flask import request
 from urllib.parse import unquote
 import traceback
+import random
 
 widthPage = 300
 heightPage = 100
@@ -29,6 +30,7 @@ version = '0.1'
 app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
+random.seed(999999, version=2)
 
 
 @app.errorhandler(404)
@@ -118,7 +120,10 @@ def htmlurl_to_image(UrlPath="", printer_name="", widthPage=300, heightPage=100)
     """
     requestMessage = {}
     try:
-        filename = tempfile.mktemp(".png")
+        # filename = tempfile.mktemp(".png")
+        # filename = tempfile.NamedTemporaryFile(suffix='.png').name
+        # filename = os.path.join(tempfile._get_default_tempdir(), next(tempfile._get_candidate_names()))+".png"
+        filename = "Temp_Html_Images%s.png" % random.randrange(999999)
         imgkit.from_url(UrlPath, filename, options={'width': widthPage, 'height': heightPage})
     except Exception:
         requestMessage["Error"] = "create temp file %s %s" % (filename, traceback.format_exc())
@@ -140,7 +145,10 @@ def html_to_image(StrPrintHtml="", printer_name="", widthPage=300, heightPage=10
     """
     requestMessage = {}
     try:
-        filename = tempfile.mktemp(".png")
+        # filename = tempfile.mktemp(".png")
+        # filename = tempfile.NamedTemporaryFile(suffix='.png').name
+        # filename = os.path.join(tempfile._get_default_tempdir(), next(tempfile._get_candidate_names()))+".png"
+        filename = "Temp_Html_Images%s.png" % random.randrange(999999)
         imgkit.from_string(
             """<!DOCTYPE html><html><head><meta charset="utf-8"><title>Печать</title></head><body>%s</body></html>""" % StrPrintHtml,
             filename, options={'width': widthPage, 'height': heightPage})
