@@ -45,7 +45,8 @@ http://localhost:51003/
 <pre>
     BarsPy.send({"GetPrinterList":1},function(dat){console.log(dat);}) // получить список принтеров установленных в системе
     BarsPy.send({"Print":"< h1>Привет Мир-HelloWorld</h1>","widthPage":300,"heightPage":100,"PrinterName":"Microsoft XPS Document Writer"},function(dat){console.log(dat);})
-    BarsPy.send({"Print":"< h1>Привет Мир-HelloWorld</h1>"}) // отправека на печать без получения ответа 
+    BarsPy.send({"Print":"< h1>Привет Мир-HelloWorld</h1>"+Date(Date.now()).toString()}) // отправека на печать без получения ответа 
+	BarsPySend({"PrintUrl":"http://127.0.0.1/sprint.png" },function(dat){console.log(dat);}) // Отправка на печать страницы по URL адресу
 </pre>
 
 **Обратится к сервису из JS**

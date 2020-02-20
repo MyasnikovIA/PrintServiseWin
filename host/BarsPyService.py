@@ -6,18 +6,26 @@ import win32event
 import servicemanager
 import socket
 import sys
-from flask import Flask, request
+from flask import Flask
 from flask_cors import CORS, cross_origin
 import json
+import os
+import win32print
+import win32ui
+import win32con
+from PIL import Image
+from PIL import ImageWin
+import tempfile
+import imgkit
+from flask import request
+from urllib.parse import unquote
+import traceback
 
 widthPage = 300
 heightPage = 100
 printer_name = ""
 portServer = 51003
 version = '0.1'
-
-from ApplicationServer import *
-
 app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -26,6 +34,144 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 @app.errorhandler(404)
 def not_found(error):
     return "no service", 404
+
+
+def parseHead():
+    """
+     Чтение входных пользовательских аргументов в заголовке запроса
+    """
+    requestMessage = {}
+    for rec in request.headers:
+        if "X-My-" in rec[0]:
+            message = unquote(unquote(request.headers.get(rec[0])))
+            key = rec[0][5:len(rec[0])]
+            requestMessage[key] = message
+    return requestMessage
+
+
+def get_print_list():
+    """
+    функция получения списка принтеров установленных в системе
+    :return:
+    """
+    requestMessage = {}
+    printers = win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)
+    requestMessage["Printers"] = [printer[2] for printer in printers]
+    return requestMessage
+
+
+def print_image(img, printer_name):
+    """процедура печати картинки"""
+    requestMessage = {}
+    try:
+        if printer_name == "":
+            printer_name = win32print.GetDefaultPrinter()
+    except Exception:
+        requestMessage["Error"] = "GetDefaultPrinter:%s" % traceback.format_exc()
+        return requestMessage
+    hdc = win32ui.CreateDC()
+    hdc.CreatePrinterDC(printer_name)
+    horzres = hdc.GetDeviceCaps(win32con.HORZRES)
+    vertres = hdc.GetDeviceCaps(win32con.VERTRES)
+    landscape = horzres > vertres
+    if landscape:
+        if img.size[1] > img.size[0]:
+            img = img.rotate(90, expand=True)
+    else:
+        if img.size[1] < img.size[0]:
+            img = img.rotate(90, expand=True)
+    img_width = img.size[0]
+    img_height = img.size[1]
+    if landscape:
+        # we want image width to match page width
+        ratio = vertres / horzres
+        max_width = img_width
+        max_height = (int)(img_width * ratio)
+    else:
+        # we want image height to match page height
+        ratio = horzres / vertres
+        max_height = img_height
+        max_width = (int)(max_height * ratio)
+    # map image size to page size
+    hdc.SetMapMode(win32con.MM_ISOTROPIC)
+    hdc.SetViewportExt((horzres, vertres));
+    hdc.SetWindowExt((max_width, max_height))
+    # offset image so it is centered horizontally
+    offset_x = (int)((max_width - img_width) / 2)
+    offset_y = (int)((max_height - img_height) / 2)
+    hdc.SetWindowOrg((-offset_x, -offset_y))
+    hdc.StartDoc('Result')
+    hdc.StartPage()
+    dib = ImageWin.Dib(img)
+    dib.draw(hdc.GetHandleOutput(), (0, 0, img_width, img_height))
+    hdc.EndPage()
+    hdc.EndDoc()
+    hdc.DeleteDC()
+
+
+def htmlurl_to_image(UrlPath="", printer_name="", widthPage=300, heightPage=100):
+    """
+    Функция вывода HTML на принтер
+    :param UrlPath: - адрес запроса
+    :param printer_name: - имя принтера
+    :return:
+    """
+    requestMessage = {}
+    try:
+        filename = tempfile.mktemp(".png")
+        imgkit.from_url(UrlPath, filename, options={'width': widthPage, 'height': heightPage})
+    except Exception:
+        requestMessage["Error"] = "create temp file %s %s" % (filename, traceback.format_exc())
+        return requestMessage
+    requestMessage = print_local_file(filename, printer_name)
+    try:
+        os.remove(filename)
+    except  Exception:
+        print("Remove file from temp :(%s)  %s" % (filename, traceback.format_exc()))
+    return requestMessage
+
+
+def html_to_image(StrPrintHtml="", printer_name="", widthPage=300, heightPage=100):
+    """
+    Функция вывода текста на принтер
+    :param StrPrintHtml: - Текст HTML
+    :param printer_name: - имя принтера
+    :return:
+    """
+    requestMessage = {}
+    try:
+        filename = tempfile.mktemp(".png")
+        imgkit.from_string(
+            """<!DOCTYPE html><html><head><meta charset="utf-8"><title>Печать</title></head><body>%s</body></html>""" % StrPrintHtml,
+            filename, options={'width': widthPage, 'height': heightPage})
+    except Exception:
+        requestMessage["Error"] = "create temp file %s %s" % (filename, traceback.format_exc())
+        return requestMessage
+    requestMessage = print_local_file(filename, printer_name)
+    try:
+        os.remove(filename)
+    except  Exception:
+        print("Remove file from temp :(%s)  %s" % (filename, traceback.format_exc()))
+    return requestMessage
+
+
+def print_local_file(filename, printer_name=""):
+    """
+    печать локального файла на принтер
+    """
+    requestMessage = {}
+    try:
+        img = Image.open(filename, 'r')
+    except Exception:
+        requestMessage["Error"] = "Open file from temp :(%s)  %s" % (filename, traceback.format_exc())
+        return requestMessage
+    try:
+        print_image(img, printer_name)
+    except Exception:
+        requestMessage["Error"] = "Print image : %s" % traceback.format_exc()
+        return requestMessage
+    return requestMessage
+
 
 @app.route("/")
 @cross_origin()
@@ -37,7 +183,6 @@ def requestFun():
     global printer_name
     global widthPage
     global heightPage
-    print(request.host[:9])
     if request.host[:9] != "127.0.0.1":
         if request.host[:9] != "localhost":
             return "no service", 404
@@ -49,26 +194,19 @@ def requestFun():
     if "PrinterName" in requestMessage:
         printer_name = requestMessage.get("PrinterName")
     if "Print" in requestMessage:
-        try:
-            if printer_name == "":
-               printer_name = win32print.GetDefaultPrinter()
-               requestMessage = print_image(requestMessage.get("Print"), printer_name, widthPage, heightPage)
-               return json.dumps(requestMessage), 200
-            else:
-               requestMessage["Error"] = "Printer not select"
-            return json.dumps(requestMessage), 200
-        except:
-            requestMessage["Error"] = "%s" % sys.exc_info()[0]
-            return json.dumps(requestMessage), 200
+        res = html_to_image(requestMessage["Print"], printer_name, widthPage, heightPage)
+        return json.dumps(res), 200
+    if "Printurl" in requestMessage:
+        res = htmlurl_to_image(requestMessage["Printurl"], printer_name)
+        return json.dumps(res), 200
     if "Getprinterlist" in requestMessage:
         return json.dumps(get_print_list()), 200
     if "Message" in requestMessage:
         if '[GetPrinterList]' in requestMessage["Message"]:
             return json.dumps(get_print_list()), 200
     if "Version" in requestMessage:
-            requestMessage["Version"] = version
+        requestMessage["Version"] = version
     return json.dumps(requestMessage), 200
-
 
 
 class TestService(win32serviceutil.ServiceFramework):
@@ -108,8 +246,9 @@ BarsPySend= function(messageObject,FunCallBack ){
     return cspBindRequestCall; 
 }
 BarsPySend({"GetPrinterList":1},function(dat){console.log(dat);}) // получить список принтеров установленных в системе
-BarsPySend({"Print":"<h1>Привет Мир-HelloWorld</h1>","widthPage":300,"heightPage":100,"PrinterName":"Microsoft XPS Document Writer"},function(dat){console.log(dat);})
-BarsPySend({"Print":"<h1>Привет Мир-HelloWorld</h1>"}) // отправека на печать без получения ответа
+BarsPySend({"Print":"<h1>Привет Мир-HelloWorld</h1>","widthPage":300,"heightPage":100,"PrinterName":"Brother QL-810W"},function(dat){console.log(dat);})
+BarsPySend({"Print":"<h1>Привет Мир-HelloWorld</h1>"+Date(Date.now()).toString()}) // отправека на печать без получения ответа
+BarsPySend({"PrintUrl":"http://127.0.0.1/sprint.png" },function(dat){console.log(dat);}) // Печать сайта по URL адресу
     """ % portServer
     _args = None
 
@@ -135,9 +274,10 @@ BarsPySend({"Print":"<h1>Привет Мир-HelloWorld</h1>"}) // отправ�
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
+     # app.run(host='0.0.0.0', port=5000)
+     if len(sys.argv) == 1:
         servicemanager.Initialize()
         servicemanager.PrepareToHostSingle(TestService)
         servicemanager.StartServiceCtrlDispatcher()
-    else:
+     else:
         win32serviceutil.HandleCommandLine(TestService)
