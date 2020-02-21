@@ -20,12 +20,7 @@ import imgkit
 from flask import request
 from urllib.parse import unquote
 import traceback
-import random
 
-from PyQt5.QtGui import QPainter
-from PyQt5.QtWidgets import QApplication, QLabel
-from PyQt5.QtPrintSupport import QPrinter
-from PyQt5.QtCore import QSizeF
 
 widthPage = 300
 heightPage = 100
@@ -35,7 +30,7 @@ version = '0.1'
 app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
-random.seed(999999, version=2)
+
 
 
 @app.errorhandler(404)
@@ -125,10 +120,7 @@ def htmlurl_to_image(UrlPath="", printer_name="", widthPage=300, heightPage=100)
     """
     requestMessage = {}
     try:
-        # filename = tempfile.mktemp(".png")
-        # filename = tempfile.NamedTemporaryFile(suffix='.png').name
-        # filename = os.path.join(tempfile._get_default_tempdir(), next(tempfile._get_candidate_names()))+".png"
-        filename = "Temp_Html_Images%s.png" % random.randrange(999999)
+        filename = tempfile.mktemp(".png")
         imgkit.from_url(UrlPath, filename, options={'width': widthPage, 'height': heightPage})
     except Exception:
         requestMessage["Error"] = "create temp file %s %s" % (filename, traceback.format_exc())
@@ -150,10 +142,7 @@ def html_to_image(StrPrintHtml="", printer_name="", widthPage=300, heightPage=10
     """
     requestMessage = {}
     try:
-        # filename = tempfile.mktemp(".png")
-        # filename = tempfile.NamedTemporaryFile(suffix='.png').name
-        # filename = os.path.join(tempfile._get_default_tempdir(), next(tempfile._get_candidate_names()))+".png"
-        filename = "Temp_Html_Images%s.png" % random.randrange(999999)
+        filename = tempfile.mktemp(".png")
         imgkit.from_string(
             """<!DOCTYPE html><html><head><meta charset="utf-8"><title>Печать</title></head><body>%s</body></html>""" % StrPrintHtml,
             filename, options={'width': widthPage, 'height': heightPage})
@@ -186,38 +175,6 @@ def print_local_file(filename, printer_name=""):
     return requestMessage
 
 
-def print_text_qt(text="", printer_name="", widthPage=300, heightPage=100):
-    requestMessage = {}
-    try:
-        if printer_name == "":
-            printer_name = win32print.GetDefaultPrinter()
-    except Exception:
-        requestMessage["Error"] = "GetDefaultPrinter:%s" % traceback.format_exc()
-        return requestMessage
-    try:
-        printer_name = "Brother QL-810W"
-        app = QApplication(sys.argv)
-        label = QLabel()
-        # label.setText(
-        #    '<img width="300"  height="100"  alt="" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAB2CAIAAADujy7aAAABuUlEQVR42u3YwY7CIBRAUZj4/7/MLEgIFlqf1YwOPWdlsKlVrlDNqVNKSSnlnNvjqo6MR47PjuP9OSNniJw/foWRa4tc7d45n32tyDvtRyLjkWuIfErjGX4S7BAH4kAciANxIA7EgTgQB+JAHCAOxIE4EAfiQByIA3EgDsQB4kAciANxIA7EgTgQB+JAHCAOxIE4EAfiQByIA3EgDsSBOEAciANxIA7EgTgQB+JAHIgDxIE4EAfiQByIA3EgDsSBOEAciANxIA7EgTgQB+JAHIgDcYA4EAfiQByIA3EgDsSBOBAHiANxIA7EgTgQB+JAHIgDcYA4EAfiQByIg0/LpRSfAlYOxMGb3FbbJvPdRplzbo/b+CuD/Ugbnw6K4+vKOA6lTuQrg5tZr684HbStfO+a8alX/PvLEMdjwSmZHtZvDW12T8zxSmVc6IZ0utT3c1n72JvdcXw6stKesuAN6d56ML1tnE726W9/fxvrhvR/7zX9FI5LyHgruvD2ccVt5WCpiM9u5MiVtpKL3nOcWPaX/z3y4O0v8z43X9/Nf1bT/7WmR6bD/7sOinn2d5M4sK0gDsQB4uDQLyTS/Ojjiz5LAAAAAElFTkSuQmCC" />')
-        label.setText(text)
-        # label.resize(widthPage, heightPage)
-        printer = QPrinter()
-        # printer.setPaperSize(QSizeF(widthPage, heightPage), QPrinter.DevicePixel)
-        printer.setPrinterName(printer_name)
-        # printer.setPrinterName('Microsoft Print to PDF')
-        # printer.setOutputFileName("C:\\!Delete\\!11\\33333.pdf")
-        painter = QPainter()
-        painter.begin(printer)
-        painter.drawPixmap(-15, -15, label.grab())
-        painter.end()
-        # sys.exit(app.exec_())
-    except Exception:
-        requestMessage["Error"] = "GetDefaultPrinter:%s" % traceback.format_exc()
-        return requestMessage
-    return requestMessage
-
-
 @app.route("/")
 @cross_origin()
 def requestFun():
@@ -243,9 +200,6 @@ def requestFun():
         return json.dumps(res), 200
     if "Printurl" in requestMessage:
         res = htmlurl_to_image(requestMessage["Printurl"], printer_name)
-        return json.dumps(res), 200
-    if "Qt" in requestMessage:
-        res = print_text_qt(requestMessage["Qt"], printer_name, widthPage, heightPage)
         return json.dumps(res), 200
     if "Getprinterlist" in requestMessage:
         return json.dumps(get_print_list()), 200
@@ -322,7 +276,7 @@ BarsPySend({"PrintUrl":"http://127.0.0.1/sprint.png" },function(dat){console.log
 
 
 if __name__ == '__main__':
-    #app.run(host='0.0.0.0', port=51003)
+    # app.run(host='0.0.0.0', port=51003)
     if len(sys.argv) == 1:
         servicemanager.Initialize()
         servicemanager.PrepareToHostSingle(TestService)
